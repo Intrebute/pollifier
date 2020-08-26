@@ -129,6 +129,9 @@ where
     pub fn touch(&mut self, k: T, ns: SignalState) {
         self.0
             .entry(k)
+            .and_modify(|(c, _)| {
+                c.touch(ns);
+            })
             .or_insert((Clocker::new_touched(SignalState::Low, ns), EdgeState::Low));
     }
 
@@ -211,6 +214,21 @@ mod tests {
         p.clock();
 
         assert_eq!(p.get(&true), EdgeState::High);
+        assert_eq!(p.get(&false), EdgeState::Low);
+
+        p.touch(true, SignalState::Low);
+
+        assert_eq!(p.get(&true), EdgeState::High);
+        assert_eq!(p.get(&false), EdgeState::Low);
+
+        p.clock();
+
+        assert_eq!(p.get(&true), EdgeState::Fall);
+        assert_eq!(p.get(&false), EdgeState::Low);
+
+        p.clock();
+
+        assert_eq!(p.get(&true), EdgeState::Low);
         assert_eq!(p.get(&false), EdgeState::Low);
     }
 }
