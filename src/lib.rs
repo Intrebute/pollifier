@@ -31,6 +31,15 @@ impl EdgeState {
             (SS::High, SS::High) => ES::High,
         }
     }
+
+    pub fn current_signal(self) -> SignalState {
+        use EdgeState as ES;
+        use SignalState as SS;
+        match self {
+            ES::High | ES::Rise => SS::High,
+            ES::Low | ES::Fall => SS::Low,
+        }
+    }
 }
 
 
