@@ -1,8 +1,9 @@
 use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::hash::Hash;
+use derive_is_enum_variant::is_enum_variant;
 
-#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug)]
+#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug, is_enum_variant)]
 pub enum EdgeState {
     Low,
     Rise,
@@ -32,7 +33,8 @@ impl EdgeState {
     }
 }
 
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+
+#[derive(PartialEq, Eq, Copy, Clone, Debug, is_enum_variant)]
 pub enum SignalState {
     High,
     Low,
@@ -94,7 +96,7 @@ impl Clocker {
     pub fn get(&self) -> SignalState {
         match *self {
             Clocker::Idle(ss) => ss,
-            Clocker::Touched{ previous, ..} => previous
+            Clocker::Touched { previous, .. } => previous,
         }
     }
 }
@@ -144,8 +146,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::SignalState as SS;
     use super::EdgeState as ES;
+    use super::SignalState as SS;
     use super::*;
     #[test]
     fn signal_to_constant_edge() {
@@ -191,7 +193,7 @@ mod tests {
         c.touch(SS::Low);
         assert_eq!(c.clock(), ES::Low);
         c.touch(SS::High);
-        assert_eq!(c.get(),SS::Low);
+        assert_eq!(c.get(), SS::Low);
         assert_eq!(c.clock(), ES::Rise);
     }
 
