@@ -1,15 +1,16 @@
 use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::hash::Hash;
-use derive_is_enum_variant::is_enum_variant;
 
-#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug, is_enum_variant)]
+/// Encodes possible transitions between two states.
+#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug)]
 pub enum EdgeState {
     Low,
     Rise,
     Fall,
     High,
 }
+
 
 impl From<SignalState> for EdgeState {
     fn from(s: SignalState) -> Self {
@@ -21,6 +22,7 @@ impl From<SignalState> for EdgeState {
 }
 
 impl EdgeState {
+    /// Computes the transition between two signal states
     pub fn new_transition(prev: SignalState, next: SignalState) -> Self {
         use EdgeState as ES;
         use SignalState as SS;
@@ -32,6 +34,7 @@ impl EdgeState {
         }
     }
 
+    /// Computes the final signal as a result of a transition. Essentially forgets the past signal state.
     pub fn current_signal(self) -> SignalState {
         use EdgeState as ES;
         use SignalState as SS;
@@ -42,8 +45,8 @@ impl EdgeState {
     }
 }
 
-
-#[derive(PartialEq, Eq, Copy, Clone, Debug, is_enum_variant)]
+/// Encodes a two-valued signal.
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum SignalState {
     High,
     Low,
@@ -75,6 +78,9 @@ impl Clocker {
         }
     }
 
+    /// Stabilizes the current value. Meant to be used at the end of a "clock cycle".
+    /// 
+    /// returns the transition between the previous and the new current state.
     pub fn clock(&mut self) -> EdgeState {
         match *self {
             Clocker::Touched { previous, next } => {
@@ -88,6 +94,9 @@ impl Clocker {
         }
     }
 
+    /// Changes the value of the signal. 
+    /// 
+    /// This new state will not be reflected until `clock` is called.
     pub fn touch(&mut self, new_signal: SignalState) {
         match *self {
             Clocker::Touched { ref mut next, .. } => {
@@ -102,6 +111,7 @@ impl Clocker {
         }
     }
 
+    /// Returns the last `clock`ed value.
     pub fn get(&self) -> SignalState {
         match *self {
             Clocker::Idle(ss) => ss,
@@ -110,8 +120,10 @@ impl Clocker {
     }
 }
 
-///
-///
+/// A map from values `T` to dynamic `clock`able signals.
+/// 
+/// The signal value for a key that has not been `touch`ed or 
+/// `clock`ed yet is implicitly considered a `Low`.
 pub struct Pollifier<T>(HashMap<T, (Clocker, EdgeState)>);
 
 impl<T> Pollifier<T> {
@@ -124,6 +136,11 @@ impl<T> Pollifier<T>
 where
     T: Hash + Eq,
 {
+    /// Returns the transition between last and current `clock`ed value associated with `k`.
+    /// 
+    /// If the signal for `k` has not been `touch`ed or `clock`ed, it is considered `Low`.
+    /// 
+    /// To get the current value, instead of the transition between values, call [`current_signal()`] on the returned value.
     pub fn get<Q>(&self, k: &Q) -> EdgeState
     where
         T: Borrow<Q>,
@@ -137,6 +154,9 @@ impl<T> Pollifier<T>
 where
     T: Hash + Eq,
 {
+    /// Sets the state for the signal associated with `k`.
+    /// 
+    /// This new state will not be reflected until `clock` is called.
     pub fn touch(&mut self, k: T, ns: SignalState) {
         self.0
             .entry(k)
@@ -146,6 +166,7 @@ where
             .or_insert((Clocker::new_touched(SignalState::Low, ns), EdgeState::Low));
     }
 
+    /// Stabilizes the current state for every `touch`ed key.
     pub fn clock(&mut self) {
         for (ref mut cl, ref mut es) in self.0.values_mut() {
             *es = cl.clock();
